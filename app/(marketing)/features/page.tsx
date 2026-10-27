@@ -24,6 +24,7 @@ export const metadata: Metadata = {
   title: "Все возможности — бесплатно",
   description:
     "Все функции MoneyTrack доступны каждому аккаунту без подписки: операции, категории, бюджеты, цели, аналитика, экспорт CSV и темы.",
+  alternates: { canonical: "/features" },
 };
 
 const groups = [

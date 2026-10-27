@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Условия использования",
   description: "Условия использования сервиса MoneyTrack.",
+  alternates: { canonical: "/terms" },
 };
 
 const sections = [

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   BarChart3,
@@ -20,6 +21,10 @@ import {
 import { LinkButton } from "@/components/ui/button";
 import { DashboardPreview } from "@/components/marketing/dashboard-preview";
 import { Badge } from "@/components/ui/badge";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const features = [
   {

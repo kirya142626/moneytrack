@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Политика конфиденциальности",
   description: "Как MoneyTrack обрабатывает и защищает данные пользователей.",
+  alternates: { canonical: "/privacy" },
 };
 
 const sections = [
