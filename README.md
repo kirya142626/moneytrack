@@ -1,10 +1,17 @@
 # MoneyTrack
 
+**Живой сайт:** <https://moneytrack.kyakunin896.workers.dev> ·
+**Состояние сервиса:** [`/api/health`](https://moneytrack.kyakunin896.workers.dev/api/health)
+
+![Лендинг MoneyTrack](docs/screenshot.png)
+
 Личный финансовый сервис: учёт доходов и расходов, бюджеты, цели накопления и аналитика.
 Next.js 15 + TypeScript + Tailwind CSS, Supabase Auth/PostgreSQL для production и
 локальная SQLite для запуска без внешних сервисов. Все возможности бесплатны.
 
-Публикация на Vercel + Supabase с нуля описана в **[DEPLOY.md](DEPLOY.md)**.
+Публикация на Vercel + Supabase + Cloudflare Worker с нуля описана в
+**[DEPLOY.md](DEPLOY.md)**. Прокси для сетей, где недоступны IP Vercel, —
+в [`cloudflare/README.md`](cloudflare/README.md).
 
 ## Возможности
 
@@ -138,9 +145,20 @@ Service role key и переменные платёжного провайдер
 
 ## Публикация
 
-Production рассчитан на **Vercel + Supabase**. Полная инструкция для новичка —
-**[DEPLOY.md](DEPLOY.md)**: создание аккаунтов, миграции, ключи, Auth URL, почта,
-домен и приёмочный чек-лист.
+Production работает по схеме **Vercel + Supabase + Cloudflare Worker**:
+
+| Компонент | Адрес |
+| --- | --- |
+| Публичный сайт | <https://moneytrack.kyakunin896.workers.dev> |
+| Origin (Vercel) | <https://moneytrack-virid.vercel.app> |
+| Состояние | <https://moneytrack.kyakunin896.workers.dev/api/health> |
+
+Cloudflare Worker проксирует запросы к Vercel со своих адресов. Это нужно потому, что
+часть anycast-IP Vercel недоступна из некоторых сетей: сайт работает, но напрямую
+не открывается. Код воркера — [`cloudflare/moneytrack-proxy.js`](cloudflare/moneytrack-proxy.js).
+
+Полная инструкция для новичка — **[DEPLOY.md](DEPLOY.md)**: создание аккаунтов,
+миграции, ключи, Auth URL, почта, домен и приёмочный чек-лист.
 
 Коротко:
 
@@ -148,7 +166,7 @@ Production рассчитан на **Vercel + Supabase**. Полная инст�
 2. Загрузите код в GitHub и импортируйте репозиторий в Vercel.
 3. Добавьте в Vercel `NEXT_PUBLIC_SUPABASE_URL` и
    `NEXT_PUBLIC_SUPABASE_ANON_KEY`, затем задеплойте.
-4. Пропишите домен Vercel в Supabase → Authentication → URL Configuration.
+4. Пропишите публичный адрес в Supabase → Authentication → URL Configuration.
 5. Добавьте `NEXT_PUBLIC_APP_URL` с финальным адресом и сделайте **Redeploy**.
 
 Без Supabase на Vercel сайт вернёт 503 — локальная SQLite там не используется.
@@ -161,7 +179,25 @@ npm run build      # production-сборка
 npm run start      # запуск собранного приложения
 npm run typecheck  # tsc --noEmit
 npm run lint       # ESLint (flat config)
+npm run smoke      # проверка живого сайта
 ```
+
+## Проверка production
+
+```bash
+npm run smoke
+# или другой адрес:
+SMOKE_BASE_URL=https://moneytrack-virid.vercel.app npm run smoke
+```
+
+Smoke-тест проверяет главную, вход, возможности, `/api/health`, иконки, PWA-манифест,
+`robots.txt` и `sitemap.xml`. Он не требует зависимостей и завершается с кодом 1,
+если хотя бы одна точка не отвечает.
+
+В `.github/workflows/` лежат два сценария GitHub Actions:
+
+- `ci.yml` — typecheck, lint и build на каждый push и pull request;
+- `smoke.yml` — ежедневная проверка production в 06:00 UTC и запуск вручную.
 
 ## Структура проекта
 
@@ -172,6 +208,7 @@ app/
   (app)/              защищённое приложение: dashboard, transactions, ...
   actions/            Server Actions: auth, transactions, categories, budgets, goals, settings
   api/export/         CSV-экспорт
+  api/health/         состояние сервиса для мониторинга
   robots.ts           правила индексации
   sitemap.ts          карта сайта
   manifest.ts         PWA-манифест
@@ -191,6 +228,10 @@ lib/
 supabase/
   migrations/         SQL-схема, RLS, триггеры, hardening
   README.md           детали схемы и Auth
+cloudflare/           reverse proxy и инструкция для публичного адреса
+scripts/smoke.mjs     smoke-тест production
+docs/                 скриншот для README
+.github/workflows/    CI и ежедневная проверка production
 DEPLOY.md             пошаговая публикация на Vercel + Supabase
 public/               логотип, OG-картинка, favicon, шрифты
 middleware.ts         защита маршрутов, сессия Supabase, 503 без конфигурации
@@ -211,14 +252,18 @@ middleware.ts         защита маршрутов, сессия Supabase, 50
 - Добавлены security-заголовки (`X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`, `Permissions-Policy`, HSTS на Vercel), `robots.txt`,
   `sitemap.xml` и PWA-манифест.
+- `/api/health` не раскрывает секретов: только режим работы, результат проверки
+  доступности Supabase и время ответа.
 - На Vercel без Supabase приложение не запускается на локальной SQLite: middleware
   возвращает 503, а `backendMode()` выбрасывает ошибку.
 
 ## Ограничения и честные оговорки
 
-- **Живой путь Supabase не проверен в этой среде**: нет аккаунта, ключей и Docker.
-  Локальный режим полностью протестирован. Схема, RLS и Auth-пересылки написаны,
-  но требуют прогонки на реальном проекте по чек-листу из [DEPLOY.md](DEPLOY.md).
+- **Production-путь Supabase проверен частично**: форма входа через Server Actions
+  доходит до Supabase и возвращает ожидаемую ошибку для неверного пароля. Полная
+  регистрация, письма и сброс пароля требуют, чтобы в Supabase →
+  Authentication → URL Configuration был указан публичный адрес сайта. Без этого
+  ссылки из писем ведут на старый домен и могут не открываться.
 - Локальная SQLite подходит для разработки и одного сервера. На serverless-платформах
   (Vercel) файловая система эфемерна — production обязан работать через Supabase.
 - Письма в локальном режиме не отправляются — ссылка сброса показывается в UI.

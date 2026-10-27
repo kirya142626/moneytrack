@@ -1,0 +1,25 @@
+name: Production smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Check production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Smoke test
+        env:
+          SMOKE_BASE_URL: https://moneytrack.kyakunin896.workers.dev
+        run: node scripts/smoke.mjs

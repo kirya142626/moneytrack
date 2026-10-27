@@ -28,7 +28,7 @@ function rewriteSameOrigin(value, base, incomingOrigin) {
   return incomingOrigin + path;
 }
 
-export default {
+const worker = {
   async fetch(request) {
     const incoming = new URL(request.url);
 
@@ -126,3 +126,5 @@ export default {
     });
   },
 };
+
+export default worker;

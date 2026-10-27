@@ -1,5 +1,11 @@
 # Публикация MoneyTrack: Vercel + Supabase
 
+> **Текущий production:** <https://moneytrack.kyakunin896.workers.dev> —
+> Cloudflare Worker проксирует запросы к Vercel
+> (<https://moneytrack-virid.vercel.app>). Проверка состояния:
+> <https://moneytrack.kyakunin896.workers.dev/api/health>.
+> Код воркера и инструкция — [`cloudflare/README.md`](cloudflare/README.md).
+
 Пошаговая инструкция для первого деплоя. Аккаунты создаются с нуля, банковская карта
 не нужна: Vercel Hobby и Supabase Free работают бесплатно.
 
@@ -215,6 +221,18 @@ git push -u origin main
    их можно не добавлять.
 
 3. Нажмите **Save**.
+
+> **Если сайт открывается через Cloudflare Worker**, указывайте в Site URL и
+> Redirect URLs публичный адрес воркера, а не `*.vercel.app`:
+>
+> ```text
+> https://moneytrack.kyakunin896.workers.dev
+> https://moneytrack.kyakunin896.workers.dev/auth/callback
+> https://moneytrack.kyakunin896.workers.dev/reset-password
+> ```
+>
+> `redirect_to` в письмах должен совпадать с одним из разрешённых адресов, иначе
+> Supabase заменит его на Site URL.
 
 Приложение формирует ссылки так:
 
