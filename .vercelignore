@@ -1,0 +1,6 @@
+# Never upload local secrets, the local SQLite database, or diagnostic logs.
+.env
+.env.*
+data/
+*.log
+tsconfig.tsbuildinfo
