@@ -5,6 +5,8 @@
 > (<https://moneytrack-virid.vercel.app>). Проверка состояния:
 > <https://moneytrack.kyakunin896.workers.dev/api/health>.
 > Код воркера и инструкция — [`cloudflare/README.md`](cloudflare/README.md).
+> Supabase Auth для текущего проекта уже настроен на адрес воркера (Site URL и
+> Redirect URLs).
 
 Пошаговая инструкция для первого деплоя. Аккаунты создаются с нуля, банковская карта
 не нужна: Vercel Hobby и Supabase Free работают бесплатно.
