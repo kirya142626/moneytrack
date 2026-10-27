@@ -24,7 +24,10 @@ export const metadata: Metadata = {
   keywords: ["учёт финансов", "личный бюджет", "бюджеты", "накопления", "финансы", "MoneyTrack"],
   authors: [{ name: "MoneyTrack" }],
   icons: {
-    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+    ],
     apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
