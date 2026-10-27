@@ -1,6 +1,10 @@
 # MoneyTrack
 
+[![CI](https://github.com/kirya142626/moneytrack/actions/workflows/ci.yml/badge.svg)](https://github.com/kirya142626/moneytrack/actions/workflows/ci.yml)
+[![Production smoke](https://github.com/kirya142626/moneytrack/actions/workflows/smoke.yml/badge.svg)](https://github.com/kirya142626/moneytrack/actions/workflows/smoke.yml)
+
 **Живой сайт:** <https://moneytrack.kyakunin896.workers.dev> ·
+**Код:** <https://github.com/kirya142626/moneytrack> ·
 **Состояние сервиса:** [`/api/health`](https://moneytrack.kyakunin896.workers.dev/api/health)
 
 ![Лендинг MoneyTrack](docs/screenshot.png)
