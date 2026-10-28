@@ -24,6 +24,16 @@ function missingProductionConfig(): NextResponse {
   );
 }
 
+function canonicalOrigin(): string | null {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (!configured) return null;
+  try {
+    return new URL(configured).origin;
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -32,7 +42,28 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  const canonical = canonicalOrigin();
+  const requestHost = (request.headers.get("host") || "").split(":")[0].toLowerCase();
+  const proxied = request.headers.get("x-mt-proxy") === "1";
+  const path = request.nextUrl.pathname;
+  const isLocalHost = requestHost === "localhost" || requestHost === "127.0.0.1";
+  const canonicalHost = canonical ? new URL(canonical).host.toLowerCase() : "";
+  const isCanonicalHost = !canonical || requestHost === canonicalHost || isLocalHost;
+
+  if (canonical && requestHost && !isCanonicalHost) {
+    // Прямые адреса Vercel и preview-деплои не должны попадать в поиск.
+    // API оставляем доступным: через него Supabase вызывает Send Email Hook.
+    if (!path.startsWith("/api/") && !proxied) {
+      const target = new URL(path + request.nextUrl.search, canonical);
+      return NextResponse.redirect(target, 301);
+    }
+  }
+
   let response = NextResponse.next({ request });
+
+  if (canonical && requestHost && !isCanonicalHost && !proxied) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -51,7 +82,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
   const isProtected = PROTECTED.some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
 
   if (!user && isProtected) {
@@ -74,6 +104,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|logo.svg|logo-mark.svg|api/health|fonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|logo.svg|logo-mark.svg|api/health|api/auth/send-email|fonts/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2)$).*)",
   ],
 };

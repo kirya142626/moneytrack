@@ -55,7 +55,11 @@ const worker = {
     headers.delete("cf-ipcountry");
     headers.delete("cf-ray");
     headers.delete("cf-visitor");
+    headers.delete("x-mt-proxy");
     headers.set("x-forwarded-proto", "https");
+    // Сообщаем приложению, что запрос уже пришёл через публичный Worker:
+    // иначе middleware сделает лишний 301 на канонический домен.
+    headers.set("x-mt-proxy", "1");
 
     const sameOrigin = incoming.origin;
     const requestOrigin = headers.get("origin");
@@ -84,6 +88,8 @@ const worker = {
     out.delete("connection");
     out.delete("x-vercel-cache");
     out.delete("server");
+    // Публичный домен должен индексироваться, даже если origin пометил ответ noindex.
+    out.delete("x-robots-tag");
 
     const location = out.get("location");
     if (location) {

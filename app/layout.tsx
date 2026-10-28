@@ -25,8 +25,10 @@ export const metadata: Metadata = {
   authors: [{ name: "MoneyTrack" }],
   icons: {
     icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/yandex-icon-120.png", type: "image/png", sizes: "120x120" },
     ],
     apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
@@ -63,9 +65,43 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const base = appUrl();
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${base}/#organization`,
+        name: "MoneyTrack",
+        url: base,
+        logo: {
+          "@type": "ImageObject",
+          url: `${base}/icon.png`,
+          width: 512,
+          height: 512,
+        },
+        sameAs: ["https://github.com/kirya142626/moneytrack"],
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${base}/#website`,
+        url: base,
+        name: "MoneyTrack",
+        description:
+          "Личные финансы нового уровня: доходы, расходы, бюджеты, цели и аналитика в одном приложении.",
+        inLanguage: "ru-RU",
+        publisher: { "@id": `${base}/#organization` },
+      },
+    ],
+  };
+
   return (
     <html lang="ru" className={inter.variable}>
       <body className="min-h-dvh bg-canvas text-ink antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
