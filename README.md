@@ -3,9 +3,9 @@
 [![CI](https://github.com/kirya142626/moneytrack/actions/workflows/ci.yml/badge.svg)](https://github.com/kirya142626/moneytrack/actions/workflows/ci.yml)
 [![Production smoke](https://github.com/kirya142626/moneytrack/actions/workflows/smoke.yml/badge.svg)](https://github.com/kirya142626/moneytrack/actions/workflows/smoke.yml)
 
-**Живой сайт:** <https://moneytrack.kyakunin896.workers.dev> ·
+**Живой сайт:** <https://getmoneytrack.ru> ·
 **Код:** <https://github.com/kirya142626/moneytrack> ·
-**Состояние сервиса:** [`/api/health`](https://moneytrack.kyakunin896.workers.dev/api/health)
+**Состояние сервиса:** [`/api/health`](https://getmoneytrack.ru/api/health)
 
 ![Лендинг MoneyTrack](docs/screenshot.png)
 
@@ -153,18 +153,18 @@ Production работает по схеме **Vercel + Supabase + Cloudflare Wor
 
 | Компонент | Адрес |
 | --- | --- |
-| Публичный сайт | <https://moneytrack.kyakunin896.workers.dev> |
-| Origin (Vercel) | <https://moneytrack-virid.vercel.app> |
-| Состояние | <https://moneytrack.kyakunin896.workers.dev/api/health> |
+| Публичный сайт | <https://getmoneytrack.ru> |
+| Состояние | <https://getmoneytrack.ru/api/health> |
 
-Cloudflare Worker проксирует запросы к Vercel со своих адресов. Это нужно потому, что
-часть anycast-IP Vercel недоступна из некоторых сетей: сайт работает, но напрямую
-не открывается. Код воркера — [`cloudflare/moneytrack-proxy.js`](cloudflare/moneytrack-proxy.js).
+Сайт отдаётся через Cloudflare Worker, который проксирует запросы к origin на
+Vercel. Это нужно потому, что часть anycast-IP Vercel недоступна из некоторых
+сетей: сайт работает, но напрямую не открывается. Код воркера —
+[`cloudflare/moneytrack-proxy.js`](cloudflare/moneytrack-proxy.js).
 
-В Supabase → Authentication → URL Configuration прописаны Site URL
-`https://moneytrack.kyakunin896.workers.dev` и Redirect URLs для Worker, Vercel и
-localhost — это проверено через API Supabase. Поэтому ссылки из писем ведут на
-публичный адрес, а не на старый домен.
+В Supabase → Authentication → URL Configuration прописываются Site URL
+`https://getmoneytrack.ru` и Redirect URLs только для публичного домена и
+localhost. Служебный адрес `*.vercel.app` в письмах и настройках Auth не
+используется.
 
 Полная инструкция для новичка — **[DEPLOY.md](DEPLOY.md)**: создание аккаунтов,
 миграции, ключи, Auth URL, почта, домен и приёмочный чек-лист.
@@ -196,7 +196,7 @@ npm run smoke      # проверка живого сайта
 ```bash
 npm run smoke
 # или другой адрес:
-SMOKE_BASE_URL=https://moneytrack-virid.vercel.app npm run smoke
+SMOKE_BASE_URL=https://example.com npm run smoke
 ```
 
 Smoke-тест проверяет главную, вход, возможности, `/api/health`, иконки, PWA-манифест,
@@ -269,16 +269,13 @@ middleware.ts         защита маршрутов, сессия Supabase, 50
 ## Ограничения и честные оговорки
 
 - **Production-путь Supabase настроен**: Site URL и Redirect URLs указывают на
-  публичный адрес Worker, форма входа через Server Actions доходит до Supabase и
-  возвращает ожидаемую ошибку для неверного пароля. Сами письма подтверждения и
-  сброса пароля в рамках проверки не отправлялись — для этого нужен реальный
-  почтовый ящик; встроенный SMTP Supabase имеет жёсткие лимиты и подходит только
-  для тестов.
+  публичный домен, форма входа через Server Actions доходит до Supabase и
+  возвращает ожидаемую ошибку для неверного пароля. Письма подтверждения и сброса
+  пароля отправляются приложением через Send Email Hook и Brevo SMTP.
 - Локальная SQLite подходит для разработки и одного сервера. На serverless-платформах
   (Vercel) файловая система эфемерна — production обязан работать через Supabase.
 - Письма в локальном режиме не отправляются — ссылка сброса показывается в UI.
-  В production нужен SMTP: встроенный SMTP Supabase имеет жёсткие лимиты и подходит
-  только для тестов.
+  В production используется Brevo (SMTP), настройка описана в `DEPLOY.md`.
 - Бесплатный проект Supabase засыпает после недели без запросов; первый запрос после
   паузы может быть медленным.
 

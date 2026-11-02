@@ -21,5 +21,5 @@ jobs:
 
       - name: Smoke test
         env:
-          SMOKE_BASE_URL: https://moneytrack.kyakunin896.workers.dev
+          SMOKE_BASE_URL: https://getmoneytrack.ru
         run: node scripts/smoke.mjs

@@ -20,7 +20,8 @@ import { connect } from "cloudflare:sockets";
 
 const SMTP_HOST = "smtp.yandex.ru";
 const SMTP_PORT = 465;
-const EHLO_HOST = "moneytrack.kyakunin896.workers.dev";
+// Имя, которое релей называет в EHLO. Должно совпадать с публичным доменом сайта.
+const EHLO_HOST = "getmoneytrack.ru";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();

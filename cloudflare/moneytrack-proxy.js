@@ -1,18 +1,21 @@
 /**
  * MoneyTrack: reverse proxy Cloudflare Worker.
  *
- * Публичный адрес: https://moneytrack.kyakunin896.workers.dev
- * Origin:          https://moneytrack-virid.vercel.app
+ * Публичный адрес: https://getmoneytrack.ru
+ * Origin:          служебный деплой Vercel (не для посетителей)
  * Health check:    /__worker_health
  *
  * Зачем: часть anycast-IP Vercel недоступна из некоторых сетей.
- * Worker обращается к Vercel со своих адресов и отдаёт сайт под доменом workers.dev.
+ * Worker обращается к Vercel со своих адресов и отдаёт сайт под публичным доменом.
  *
  * Деплой: Cloudflare Dashboard → Workers & Pages → moneytrack → Edit code → Deploy.
  */
 
 const ORIGIN = "https://moneytrack-virid.vercel.app";
 const ORIGIN_HOST = new URL(ORIGIN).host;
+// Публичный домен: остальные адреса (www, *.workers.dev) отвечают редиректом 301.
+const CANONICAL = "https://getmoneytrack.ru";
+const CANONICAL_HOST = new URL(CANONICAL).host;
 
 function rewriteSameOrigin(value, base, incomingOrigin) {
   if (!value) return value;
@@ -34,6 +37,14 @@ const worker = {
 
     if (incoming.pathname === "/__worker_health") {
       return new Response("ok", { headers: { "content-type": "text/plain; charset=utf-8" } });
+    }
+
+    // Технические адреса (www, *.workers.dev) не должны быть вторыми сайтами в поиске.
+    if (incoming.hostname !== CANONICAL_HOST) {
+      const target = new URL(CANONICAL);
+      target.pathname = incoming.pathname;
+      target.search = incoming.search;
+      return Response.redirect(target.toString(), 301);
     }
 
     const target = new URL(ORIGIN);

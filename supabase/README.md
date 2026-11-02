@@ -75,13 +75,12 @@ RLS включён для всех таблиц. Пользователь вид
 
 - **Site URL**:
   - локально: `http://localhost:3000`;
-  - production: ваш домен Vercel, например
-    `https://moneytrack-abc123.vercel.app` или `https://moneytrack.ru`.
+  - production: `https://getmoneytrack.ru`.
 - **Redirect URLs**:
   - `http://localhost:3000/auth/callback`
   - `http://localhost:3000/reset-password`
-  - `https://<production-домен>/auth/callback`
-  - `https://<production-домен>/reset-password`
+  - `https://getmoneytrack.ru/auth/callback`
+  - `https://getmoneytrack.ru/reset-password`
 
 Приложение использует:
 

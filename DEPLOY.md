@@ -1,12 +1,11 @@
 # Публикация MoneyTrack: Vercel + Supabase
 
-> **Текущий production:** <https://moneytrack.kyakunin896.workers.dev> —
-> Cloudflare Worker проксирует запросы к Vercel
-> (<https://moneytrack-virid.vercel.app>). Проверка состояния:
-> <https://moneytrack.kyakunin896.workers.dev/api/health>.
+> **Текущий production:** <https://getmoneytrack.ru> —
+> Cloudflare Worker проксирует запросы к служебному origin на Vercel.
+> Проверка состояния: <https://getmoneytrack.ru/api/health>.
 > Код воркера и инструкция — [`cloudflare/README.md`](cloudflare/README.md).
-> Supabase Auth для текущего проекта уже настроен на адрес воркера (Site URL и
-> Redirect URLs).
+> Supabase Auth настраивается на `https://getmoneytrack.ru`
+> (Site URL и Redirect URLs).
 
 Пошаговая инструкция для первого деплоя. Аккаунты создаются с нуля, банковская карта
 не нужна: Vercel Hobby и Supabase Free работают бесплатно.
@@ -187,7 +186,7 @@ git push -u origin main
 1. В Vercel откройте проект → **Settings** → **Environment Variables**.
 2. Добавьте:
    - **Name:** `NEXT_PUBLIC_APP_URL`;
-   - **Value:** `https://moneytrack-abc123.vercel.app` (ваш домен, **без** `/` в конце);
+   - **Value:** `https://getmoneytrack.ru` (публичный домен, **без** `/` в конце);
    - **Environments:** Production.
 3. Сохраните.
 4. Откройте **Deployments** → у последнего деплоя меню **⋯** → **Redeploy**.
@@ -207,14 +206,14 @@ git push -u origin main
 1. **Site URL** — основной адрес сайта:
 
    ```text
-   https://moneytrack-abc123.vercel.app
+   https://getmoneytrack.ru
    ```
 
 2. **Redirect URLs** — добавьте по одной кнопкой **Add URL**:
 
    ```text
-   https://moneytrack-abc123.vercel.app/auth/callback
-   https://moneytrack-abc123.vercel.app/reset-password
+   https://getmoneytrack.ru/auth/callback
+   https://getmoneytrack.ru/reset-password
    http://localhost:3000/auth/callback
    http://localhost:3000/reset-password
    ```
@@ -225,13 +224,16 @@ git push -u origin main
 3. Нажмите **Save**.
 
 > **Если сайт открывается через Cloudflare Worker**, указывайте в Site URL и
-> Redirect URLs публичный адрес воркера, а не `*.vercel.app`:
+> Redirect URLs только публичный домен:
 >
 > ```text
-> https://moneytrack.kyakunin896.workers.dev
-> https://moneytrack.kyakunin896.workers.dev/auth/callback
-> https://moneytrack.kyakunin896.workers.dev/reset-password
+> https://getmoneytrack.ru
+> https://getmoneytrack.ru/auth/callback
+> https://getmoneytrack.ru/reset-password
 > ```
+>
+> Служебный адрес `*.vercel.app` в Supabase добавлять не нужно: он используется
+> только как origin для воркера и не должен участвовать в письмах.
 >
 > `redirect_to` в письмах должен совпадать с одним из разрешённых адресов, иначе
 > Supabase заменит его на Site URL.
@@ -248,39 +250,79 @@ git push -u origin main
 
 ## Шаг 5. Настроить почту
 
-По умолчанию Supabase отправляет письма через собственный тестовый SMTP:
-количество писем в час сильно ограничено, и для реальных пользователей это
-ненадёжно.
+Письма отправляет не Supabase, а само приложение. Supabase Auth вызывает
+**Send Email Hook** на `https://getmoneytrack.ru/api/auth/send-email`, приложение
+формирует письмо и отправляет его через SMTP-провайдера.
 
-### Вариант A — быстрый запуск без подтверждения почты
+```text
+Supabase Auth ──webhook──► /api/auth/send-email ──SMTP──► Brevo ──► почта пользователя
+```
 
-1. Supabase → **Authentication** → **Sign In / Providers** → **Email**.
-2. Выключите **Confirm email** и сохраните.
+Поэтому настраиваются две части: SMTP-доступ в Vercel и сам хук в Supabase.
+Встроенный SMTP Supabase при этом не используется.
 
-После регистрации сессия создаётся сразу. Минус: почта не проверяется, а письма
-для сброса пароля всё равно идут через лимитированный SMTP.
+### 5.1. Подключить домен и отправителя в Brevo
 
-### Вариант B — полноценная почта (рекомендуется перед публикацией)
-
-Подойдёт бесплатный тариф Brevo: до 300 писем в день.
+Бесплатный тариф Brevo — до 300 писем в день, карта не нужна.
 
 1. Зарегистрируйтесь на <https://www.brevo.com>.
-2. В разделе **Senders & IP** добавьте и подтвердите адрес отправителя
-   (например, свою почту).
-3. Откройте **SMTP & API** → вкладка **SMTP**:
-   - сервер: `smtp-relay.brevo.com`;
-   - порт: `587`;
-   - логин и пароль SMTP — скопируйте из панели Brevo.
-4. В Supabase → **Authentication** → **SMTP Settings** (или **Emails**):
-   - включите **Enable Custom SMTP**;
-   - **Sender email** — подтверждённый адрес из Brevo;
-   - **Sender name** — `MoneyTrack`;
-   - **Host**, **Port**, **Username**, **Password** — из Brevo.
-5. Сохраните и оставьте **Confirm email** включённым.
-6. Проверьте регистрацию и сброс пароля на настоящей почте.
+2. **Senders, Domains & Dedicated IPs → Domains → Add a domain** —
+   добавьте `getmoneytrack.ru` и пройдите аутентификацию домена.
+3. Brevo покажет DNS-записи: `brevo-code` (TXT), два DKIM (CNAME) и DMARC (TXT).
+   Внесите их в Cloudflare → **DNS → Records**. У CNAME обязательно
+   **Proxy status: DNS only** (серое облако).
+4. Дождитесь статуса **Authenticated** на странице домена.
+5. **Senders → Add sender** — добавьте `noreply@getmoneytrack.ru`
+   (имя отправителя: `MoneyTrack`) и подтвердите адрес.
+6. **Settings → SMTP & API → SMTP** — скопируйте **Login** (вида
+   `1234567@smtp-brevo.com`) и создайте **SMTP key**. Это пароль для отправки.
 
-> Альтернатива — Resend, но для отправки на любые адреса там требуется
-> подтвердить собственный домен. Brevo проще для старта.
+> Логин в панель Brevo (ваш email) и SMTP-логин — разные вещи. Для `SMTP_USER`
+> нужен именно логин вида `...@smtp-brevo.com`.
+
+### 5.2. Добавить переменные в Vercel
+
+Vercel → проект **moneytrack** → **Settings → Environment Variables**,
+окружение **Production**:
+
+| Переменная | Значение |
+| --- | --- |
+| `SMTP_HOST` | `smtp-relay.brevo.com` |
+| `SMTP_PORT` | `587` |
+| `SMTP_USER` | SMTP-логин из Brevo |
+| `SMTP_PASS` | SMTP key из Brevo |
+| `SMTP_FROM` | `noreply@getmoneytrack.ru` |
+| `SEND_EMAIL_HOOK_SECRET` | секрет хука из шага 5.3 (формат `v1,whsec_...`) |
+
+`SMTP_PORT=587` работает через STARTTLS; код включает `secure` только для порта
+`465`. Переменная `MAIL_RELAY_URL` больше не нужна — без неё приложение
+отправляет письма напрямую через SMTP.
+
+Секреты (`SMTP_PASS`, `SEND_EMAIL_HOOK_SECRET`) не храните в репозитории и не
+пересылайте в мессенджерах. После изменения переменных передеплойте проект.
+
+### 5.3. Включить Send Email Hook в Supabase
+
+1. Supabase → **Authentication → Hooks → Send Email** (в старых версиях панели —
+   **Auth Hooks**).
+2. Тип хука — **HTTPS**, включите его.
+3. **URL**: `https://getmoneytrack.ru/api/auth/send-email`.
+4. Сгенерируйте секрет и скопируйте его в `SEND_EMAIL_HOOK_SECRET` в Vercel.
+5. Сохраните хук и передеплойте проект, если переменная добавлялась после сборки.
+6. Оставьте **Confirm email** включённым в **Authentication → Sign In / Providers
+   → Email**.
+
+### 5.4. Проверить
+
+1. Зарегистрируйте тестовый аккаунт — письмо подтверждения должно прийти.
+2. Запросите сброс пароля на `/forgot-password` — ссылка должна вести на
+   `https://getmoneytrack.ru/auth/callback?next=/reset-password`.
+3. Если письма нет, проверьте в Vercel **Functions → Logs** строки
+   `[send-email-hook]` и статус домена в Brevo.
+
+> Если нужно временно запуститься без писем, выключите **Confirm email**.
+> Регистрация будет создавать сессию сразу, но сброс пароля без работающего
+> хука не заработает. Для публичного сайта оставляйте полную схему.
 
 ---
 
@@ -320,21 +362,25 @@ select * from public.transactions where user_id <> auth.uid();
 
 ---
 
-## Шаг 7. Свой домен (необязательно)
+## Шаг 7. Свой домен
 
-1. Купите домен у любого регистратора (например, reg.ru, Namecheap, Cloudflare).
-2. Vercel → проект → **Settings** → **Domains** → **Add**.
-3. Введите домен, например `moneytrack.ru`, и следуйте DNS-инструкции Vercel.
-4. После появления статуса **Valid Configuration** обновите:
-   - Vercel → `NEXT_PUBLIC_APP_URL` = `https://moneytrack.ru`;
-   - Supabase → **Site URL** = `https://moneytrack.ru`;
-   - Supabase → **Redirect URLs** добавьте
-     `https://moneytrack.ru/auth/callback` и
-     `https://moneytrack.ru/reset-password`.
-5. Сделайте **Redeploy** в Vercel.
+1. Зарегистрируйте домен у любого регистратора (в проекте — Beget).
+2. Добавьте домен в Cloudflare и замените NS у регистратора на выданные
+   Cloudflare (`*.ns.cloudflare.com`).
+3. Привяжите домен к воркеру: **Workers & Pages → moneytrack → Settings →
+   Domains & Routes → Add custom domain** → `getmoneytrack.ru`. Запись DNS
+   Cloudflare создаст сама.
+4. При желании добавьте `www.getmoneytrack.ru` тем же способом или настройте
+   Redirect Rule на основной домен.
+5. Обновите адреса:
+   - Vercel → `NEXT_PUBLIC_APP_URL` = `https://getmoneytrack.ru`;
+   - Supabase → **Site URL** = `https://getmoneytrack.ru`;
+   - Supabase → **Redirect URLs** = `https://getmoneytrack.ru/auth/callback` и
+     `https://getmoneytrack.ru/reset-password`.
+6. Сделайте **Redeploy** в Vercel.
 
-Старый адрес `*.vercel.app` можно оставить рабочим — Vercel перенаправит его на
-основной домен.
+Служебный адрес `*.vercel.app` остаётся только origin для воркера: он не должен
+попадать в письма, canonical, sitemap или поисковую выдачу.
 
 ---
 

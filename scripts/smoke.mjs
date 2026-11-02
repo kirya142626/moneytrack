@@ -3,16 +3,17 @@
  * Smoke-тест production-сайта.
  *
  *   npm run smoke
- *   SMOKE_BASE_URL=https://moneytrack-virid.vercel.app npm run smoke
+ *   SMOKE_BASE_URL=https://example.com npm run smoke
  *
  * Проверяет статусы, типы контента и ключевые данные страниц.
  * Завершается с кодом 1, если хотя бы одна проверка не прошла.
  */
 
 const base = (
-  process.env.SMOKE_BASE_URL ?? "https://moneytrack.kyakunin896.workers.dev"
+  process.env.SMOKE_BASE_URL ?? "https://getmoneytrack.ru"
 ).replace(/\/+$/, "");
 const timeoutMs = Number(process.env.SMOKE_TIMEOUT_MS ?? 15000);
+const baseHost = new URL(base).hostname;
 
 const checks = [
   { path: "/", type: "text/html", includes: "MoneyTrack" },
@@ -35,7 +36,11 @@ const checks = [
   { path: "/sitemap.xml", type: "application/xml", includes: base },
 ];
 
-if (new URL(base).hostname.endsWith(".workers.dev")) {
+// `/__worker_health` отдаёт только прокси-воркер, поэтому проверяем его
+// на публичном домене.
+const isProxyHost = baseHost === "getmoneytrack.ru";
+
+if (isProxyHost) {
   checks.push({ path: "/__worker_health", type: "text/plain", includes: "ok" });
 }
 

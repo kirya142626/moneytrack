@@ -1,0 +1,11 @@
+name = "moneytrack"
+main = "moneytrack-proxy.js"
+compatibility_date = "2026-11-01"
+
+# Служебный адрес *.workers.dev отвечает 301 на основной домен.
+workers_dev = true
+
+routes = [
+  { pattern = "getmoneytrack.ru", custom_domain = true },
+  { pattern = "www.getmoneytrack.ru", custom_domain = true },
+]
