@@ -26,11 +26,12 @@ export const metadata: Metadata = {
   authors: [{ name: "MoneyTrack" }],
   icons: {
     icon: [
-      { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "16x16 32x32 48x48" },
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/icon.png", type: "image/png", sizes: "512x512" },
       { url: "/yandex-icon-120.png", type: "image/png", sizes: "120x120" },
     ],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
     apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
   },
   openGraph: {
